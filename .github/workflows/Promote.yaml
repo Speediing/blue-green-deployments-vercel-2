@@ -65,7 +65,7 @@ jobs:
       - name: Update Edge Config
         id: blue-green
         run: |
-          echo "::set-output name=id::$(cat workspaces.json | jq -c '.deploymentDomainGreen')"
+          echo "::set-output name=id::$(cat workflow.json | jq -c '.deploymentDomainGreen')"
 
       - name: Deploy Green
         run: vercel promote ${{ steps.blue-green.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }}
