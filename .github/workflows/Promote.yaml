@@ -1,4 +1,4 @@
-name: Promote Blue-Green Deployment
+name: Create Blue-Green Deployment
 
 # How can I use GitHub Actions with Vercel?
 # https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
@@ -58,20 +58,21 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel
       - name: Update Edge Config
-        id: ec
         run: |
-          echo "url=$(curl -X 'https://edge-config.vercel.com/your_edge_config_id_here/item/blue-green-configuration' -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' )" >> $GITHUB_OUTPUT
+          curl -X 'https://edge-config.vercel.com/your_edge_config_id_here/item/blue-green-configuration' \
+                -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' -o workflow.json
       - name: Update Edge Config
+        id: blue-green
         run: |
-          echo "${{ steps.ec.outputs.url}}"
-      # - name: Deploy Green
-      #   id: deploy-green
-      #   run: echo "url=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+          echo "::set-output name=id::$(cat workspaces.json | jq -c '.deploymentDomainGreen')"
+
+      - name: Deploy Green
+        run: vercel promote ${{ steps.blue-green.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }}
       # Update the blue-green urls in the Edge Config store using Vercel's API.
       # https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items
-      # - name: Update Edge Config
-      #   run: |
-      #     curl -X 'PATCH' 'https://api.vercel.com/v1/edge-config/${{ secrets.VERCEL_EDGE_CONFIG_ID }}/items?teamId=${{ secrets.VERCEL_ORG_ID }}' \
-      #     -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
-      #     -H 'Content-Type: application/json' \
-      #     -d $'{ "items": [ { "operation": "upsert", "key": "blue-green-configuration", "value": { "deploymentDomainBlue": "${{ env.VERCEL_PROD_URL }}", "deploymentDomainGreen": "${{ steps.deploy-green.outputs.url }}", "trafficGreenPercent": 50 } } ] }'
+      - name: Update Edge Config
+        run: |
+          curl -X 'PATCH' 'https://api.vercel.com/v1/edge-config/${{ secrets.VERCEL_EDGE_CONFIG_ID }}/items?teamId=${{ secrets.VERCEL_ORG_ID }}' \
+          -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
+          -H 'Content-Type: application/json' \
+          -d $'{ "items": [ { "operation": "upsert", "key": "blue-green-configuration", "value": { "deploymentDomainBlue": "${{ env.VERCEL_PROD_URL }}", "deploymentDomainGreen": "${{ steps.blue-green.outputs.url }}", "trafficGreenPercent": 0 } } ] }'
