@@ -63,6 +63,9 @@ jobs:
                 -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
                 -o workflow.json
       - name: Update Edge Config
+        run: |
+          cat cat workflow.json
+      - name: Update Edge Config
         id: blue-green
         run: |
           echo "url=$(cat workflow.json | jq -c '.deploymentDomainGreen')" >> $GITHUB_OUTPUT
