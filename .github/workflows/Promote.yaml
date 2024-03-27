@@ -60,7 +60,8 @@ jobs:
       - name: Update Edge Config
         run: |
           curl 'https://edge-config.vercel.com/${{ secrets.VERCEL_EDGE_CONFIG_ID }}/item/blue-green-configuration' \
-                -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' -o workflow.json
+                -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
+                -o workflow.json
       - name: Update Edge Config
         id: blue-green
         run: |
