@@ -64,7 +64,7 @@ jobs:
                 -o workflow.json
       - name: Update Edge Config
         run: |
-          cat cat workflow.json
+          cat workflow.json
       - name: Update Edge Config
         id: blue-green
         run: |
