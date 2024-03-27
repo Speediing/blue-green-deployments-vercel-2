@@ -1,4 +1,4 @@
-name: Cron Blue Green Deploy
+name: Create Blue-Green Deployment
 
 # How can I use GitHub Actions with Vercel?
 # https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
