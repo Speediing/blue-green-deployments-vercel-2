@@ -1,0 +1,70 @@
+name: Cron Blue Green Deploy
+
+# How can I use GitHub Actions with Vercel?
+# https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_PROD_URL: https://blue-green-deployments-vercel-2-xi.vercel.app
+
+on:
+  # Allow manual runs
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Log level"
+        required: true
+        default: "information"
+        type: choice
+        options:
+          - information
+          - debug
+          - warning
+          - critical
+      tags:
+        description: "Reason for running workflow?"
+        required: true
+        type: string
+
+jobs:
+  create-blue-green-deployments:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # `1` means fetch the latest commit without full history, so it's fast and efficient.
+          fetch-depth: 1
+      - name: Set node version
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: ".nvmrc"
+      - name: Enable corepack
+        run: corepack enable pnpm
+      - name: Set pnpm version
+        uses: pnpm/action-setup@v3
+        with:
+          run_install: false
+          version: 8
+      - name: Cache node_modules
+        id: node-modules-cache
+        uses: actions/cache@v3
+        with:
+          path: "**/node_modules"
+          key: node-modules-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - name: Install dependencies
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: pnpm install --no-frozen-lockfile
+      - name: Install Vercel CLI
+        run: npm install --global vercel
+      - name: Deploy Green
+        id: deploy-green
+        run: echo "url=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+      # Update the blue-green urls in the Edge Config store using Vercel's API.
+      # https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items
+      - name: Update Edge Config
+        run: |
+          curl -X 'PATCH' 'https://api.vercel.com/v1/edge-config/${{ secrets.VERCEL_EDGE_CONFIG_ID }}/items?teamId=${{ secrets.VERCEL_ORG_ID }}' \
+          -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
+          -H 'Content-Type: application/json' \
+          -d $'{ "items": [ { "operation": "upsert", "key": "blue-green-configuration", "value": { "deploymentDomainBlue": "${{ VERCEL_PROD_URL }}", "deploymentDomainGreen": "${{ steps.deploy-green.outputs.url }}", "trafficGreenPercent": 50 } } ] }'
