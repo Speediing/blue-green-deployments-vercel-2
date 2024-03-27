@@ -61,7 +61,7 @@ jobs:
         id: ec
         run: |
           echo "url=$(curl -X 'https://edge-config.vercel.com/your_edge_config_id_here/item/blue-green-configuration' \
-                -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \)" >> $GITHUB_OUTPUT
+                -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' )" >> $GITHUB_OUTPUT
       - name: Update Edge Config
         run: |
           echo "${{ steps.ec.outputs.url}}"
