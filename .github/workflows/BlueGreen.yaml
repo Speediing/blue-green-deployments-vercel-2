@@ -8,44 +8,43 @@ env:
   VERCEL_PROD_URL: https://blue-green-deployments-vercel-2-xi.vercel.app
 
 on:
-  push:
-    branches:
-      - main
+  deployment_status:
 
 jobs:
   create-blue-green-deployments:
+    if: github.event_name == 'deployment_status' && github.event.deployment_status.state == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          # `1` means fetch the latest commit without full history, so it's fast and efficient.
-          fetch-depth: 1
-      - name: Set node version
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: ".nvmrc"
-      - name: Enable corepack
-        run: corepack enable pnpm
-      - name: Set pnpm version
-        uses: pnpm/action-setup@v3
-        with:
-          run_install: false
-          version: 8
-      - name: Cache node_modules
-        id: node-modules-cache
-        uses: actions/cache@v3
-        with:
-          path: "**/node_modules"
-          key: node-modules-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
-      - name: Install dependencies
-        if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: pnpm install --no-frozen-lockfile
-      - name: Install Vercel CLI
-        run: npm install --global vercel
-      - name: Deploy Green
-        id: deploy-green
-        run: echo "url=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
+      # - name: Checkout
+      #   uses: actions/checkout@v4
+      #   with:
+      #     # `1` means fetch the latest commit without full history, so it's fast and efficient.
+      #     fetch-depth: 1
+      # - name: Set node version
+      #   uses: actions/setup-node@v3
+      #   with:
+      #     node-version-file: ".nvmrc"
+      # - name: Enable corepack
+      #   run: corepack enable pnpm
+      # - name: Set pnpm version
+      #   uses: pnpm/action-setup@v3
+      #   with:
+      #     run_install: false
+      #     version: 8
+      # - name: Cache node_modules
+      #   id: node-modules-cache
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: "**/node_modules"
+      #     key: node-modules-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
+      # - name: Install dependencies
+      #   if: steps.node-modules-cache.outputs.cache-hit != 'true'
+      #   run: pnpm install --no-frozen-lockfile
+      # - name: Install Vercel CLI
+      #   run: npm install --global vercel
+      # - name: Deploy Green
+      #   id: deploy-green
+      #   run: echo "url=$(vercel --prod --token=${{ secrets.VERCEL_TOKEN }})" >> $GITHUB_OUTPUT
       # Update the blue-green urls in the Edge Config store using Vercel's API.
       # https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items
       - name: Update Edge Config
@@ -53,4 +52,4 @@ jobs:
           curl -X 'PATCH' 'https://api.vercel.com/v1/edge-config/${{ secrets.VERCEL_EDGE_CONFIG_ID }}/items?teamId=${{ secrets.VERCEL_ORG_ID }}' \
           -H 'Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}' \
           -H 'Content-Type: application/json' \
-          -d $'{ "items": [ { "operation": "upsert", "key": "blue-green-configuration", "value": { "deploymentDomainBlue": "${{ env.VERCEL_PROD_URL }}", "deploymentDomainGreen": "${{ steps.deploy-green.outputs.url }}", "trafficGreenPercent": 50 } } ] }'
+          -d $'{ "items": [ { "operation": "upsert", "key": "blue-green-configuration", "value": { "deploymentDomainBlue": "${{ github.event.deployment_status.environment_url }}", "deploymentDomainGreen": "${{ steps.deploy-green.outputs.url }}", "trafficGreenPercent": 50 } } ] }'
