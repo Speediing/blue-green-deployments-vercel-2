@@ -71,7 +71,7 @@ jobs:
           echo "url=$(cat workflow.json | jq -c '.deploymentDomainGreen')" >> $GITHUB_OUTPUT
 
       - name: Deploy Green
-        run: vercel promote ${{ steps.blue-green.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope JasonWikerEnterpriseDemo
+        run: vercel promote ${{ steps.blue-green.outputs.url }} --token=${{ secrets.VERCEL_TOKEN }} --scope jasonwikerentdemo
       # Update the blue-green urls in the Edge Config store using Vercel's API.
       # https://vercel.com/docs/storage/edge-config/vercel-api#update-your-edge-config-items
       - name: Update Edge Config
